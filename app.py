@@ -16,7 +16,7 @@ load_dotenv()
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
+print("commit")
 knowledgeDB = None #had to declare globally sorry computer
 
 @bot.message_handler(commands=['start'])
