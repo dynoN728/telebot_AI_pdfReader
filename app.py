@@ -8,12 +8,18 @@ from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
 from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
+from google.cloud import texttospeech as tts
 
 import telebot
 
 load_dotenv()
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
+
+# Instantiates a client
+client = tts.TextToSpeechClient()
+
+backendQuery = "summarize this as best as you can"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 print("commit")
@@ -75,21 +81,35 @@ def doc_handler(message):
     global knowledgeDB
     knowledgeDB = FAISS.from_texts(chunks, embeddings)
 
+    if knowledgeDB is not None:
+        docs = knowledgeDB.similarity_search(backendQuery)
+
+        llm = OpenAI()
+        chain = load_qa_chain(llm, chain_type="stuff")
+        response = chain.run(input_documents=docs, question=backendQuery)
+        bot.reply_to(message, response)
+
+        #run tts
+
+        
+    else:
+        bot.reply_to(message, "please give a pdf file first")
+
 # We get the user to ask questions about the pdf now
 
-@bot.message_handler(func=lambda message: True)
-def reply_to_question(message):
-    query = message.text
-    if not query.startswith("/"):  
-        if knowledgeDB is not None:
-            docs = knowledgeDB.similarity_search(query)
+# @bot.message_handler(func=lambda message: True)
+# def reply_to_question(message):
+#     query = message.text
+#     if not query.startswith("/"):  
+#         if knowledgeDB is not None:
+#             docs = knowledgeDB.similarity_search(query)
 
-            llm = OpenAI()
-            chain = load_qa_chain(llm, chain_type="stuff")
-            response = chain.run(input_documents=docs, question=query)
-            bot.reply_to(message, response)
-        else:
-            bot.reply_to(message, "please give a pdf file first")
+#             llm = OpenAI()
+#             chain = load_qa_chain(llm, chain_type="stuff")
+#             response = chain.run(input_documents=docs, question=query)
+#             bot.reply_to(message, response)
+#         else:
+#             bot.reply_to(message, "please give a pdf file first")
     
 
 bot.infinity_polling() # FOC taught this polling and interrupt
